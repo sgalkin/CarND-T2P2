@@ -1,29 +1,27 @@
-#ifndef TOOLS_H_
-#define TOOLS_H_
+#pragma once
+
 #include <vector>
-#include "Eigen/Dense"
+#include <numeric>
+#include <exception>
 
-using Eigen::MatrixXd;
-using Eigen::VectorXd;
-using namespace std;
+namespace tools {
+  // A helper function to calculate RMSE.
+  template<typename V>
+  V RMSE(const std::vector<V>& estimations, const std::vector<V>& ground_truth) {
+    if(ground_truth.empty() || ground_truth.size() != estimations.size()) {
+      throw std::invalid_argument("size mismatch for RMSE");
+    }
 
-class Tools {
-public:
-  /**
-  * Constructor.
-  */
-  Tools();
-
-  /**
-  * Destructor.
-  */
-  virtual ~Tools();
-
-  /**
-  * A helper method to calculate RMSE.
-  */
-  VectorXd CalculateRMSE(const vector<VectorXd> &estimations, const vector<VectorXd> &ground_truth);
-
-};
-
-#endif /* TOOLS_H_ */
+    const auto& f = ground_truth.front();
+    auto v = std::inner_product(begin(estimations), end(estimations),
+                                begin(ground_truth),
+                                V(V::Zero(f.rows(), f.cols())),
+                                [](const V& acc, const V& v) {
+                                  return acc + v;
+                                },
+                                [](const V& e, const V& gt) {
+                                  return (e - gt).array().square().matrix();
+                                });
+    return (v / ground_truth.size()).array().sqrt().matrix();
+  }
+}
