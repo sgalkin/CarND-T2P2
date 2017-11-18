@@ -47,7 +47,7 @@ struct Model {
   template<typename A>
   static Eigen::Matrix<double, N, A::ColsAtCompileTime>
   F(const A& x, Interval duration) {
-    static_assert(A::RowsAtCompileTime == N_A, "Invalid input dimention");
+    static_assert(A::RowsAtCompileTime == int(N_A), "Invalid input dimention");
 
     double dt = duration.count();
     double dt2 = dt * dt / 2;

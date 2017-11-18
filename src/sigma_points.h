@@ -78,6 +78,6 @@ namespace sigma_points {
     const auto w = internal::weights<Nsigma>(lambda);
     auto x = SP * w;
     auto SPc = SP.colwise() - x;
-    return {std::move(x), xCorrelation(SPc, SPc)};
+    return std::make_tuple(std::move(x), xCorrelation(SPc, SPc));
   }
 }

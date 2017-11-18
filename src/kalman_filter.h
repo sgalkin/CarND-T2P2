@@ -28,7 +28,7 @@ namespace kalman_filter {
       auto dt = std::chrono::duration_cast<typename Model::Interval>(now - ts);
       auto SP = Model::F(sigma_points::create(x, P), dt);
 
-      return {now, SP};
+      return Prediction<Model>{now, SP};
     }
 
     template<typename Model, typename Z>
@@ -52,7 +52,7 @@ namespace kalman_filter {
       const auto dz = Z::Normalize(z - zp);
       auto e = dz.transpose() * Sinv * dz;
 
-      return {{now, x + K*dz, P - K*S*K.transpose()}, e};
+      return Update<Model>{typename Model::State{now, x + K*dz, P - K*S*K.transpose()}, e};
     }
   }
   
@@ -67,9 +67,9 @@ namespace kalman_filter {
     if(initialized) {
       auto p = internal::predict<Model>(now, std::move(s));
       auto u = internal::update<Model, Z>(std::move(z), std::move(p));
-      return {true, std::get<0>(u), std::get<1>(u)};
+      return State<Model>{true, std::get<0>(u), std::get<1>(u)};
     } else {
-      return {true, Model::template Init<Z>(now, std::move(z)), 0};
+      return State<Model>{true, Model::template Init<Z>(now, std::move(z)), 0};
     }
   }
 }
