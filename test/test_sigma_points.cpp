@@ -24,15 +24,18 @@ TEST_CASE("Create Sigma Points", "[math]") {
        -0.0020,  0.0060,  0.0008,  0.0100,  0.0123;
 
   //Eigen::MatrixXd Esp(n, 2*n + 1);
-  sigma_points::SigmaPoints<n> Esp;
+  sigma_points::SigmaPoints<n, sigma_points::NSigma(n)> Esp;
   Esp <<  5.7441,  5.85768,   5.7441,   5.7441,   5.7441,   5.7441,  5.63052,   5.7441,   5.7441,   5.7441,   5.7441,
             1.38,  1.34566,  1.52806,     1.38,     1.38,     1.38,  1.41434,  1.23194,     1.38,     1.38,     1.38,
           2.2049,  2.28414,  2.24557,  2.29582,   2.2049,   2.2049,  2.12566,  2.16423,  2.11398,   2.2049,   2.2049,
           0.5015,  0.44339, 0.631886, 0.516923, 0.595227,   0.5015,  0.55961, 0.371114, 0.486077, 0.407773,   0.5015,
           0.3528, 0.299973, 0.462123, 0.376339,  0.48417, 0.418721, 0.405627, 0.243477, 0.329261,  0.22143, 0.286879;
   
-  auto sigma = sigma_points::create(x, P);
+  auto package = sigma_points::create(x, P);
+  auto const& sigma = std::get<0>(package);
+  auto lambda = std::get<1>(package);
   REQUIRE(((sigma - Esp).array().abs() < 1e-5).all());
+  REQUIRE(Approx(3. - n) == lambda);
 }
 
 TEST_CASE("Predict mean/covariance", "[math]") {
@@ -61,7 +64,7 @@ TEST_CASE("Predict mean/covariance", "[math]") {
     -0.00348196, 0.00980182, 0.000778632,   0.0119238,   0.0112491,
     -0.00299378, 0.00791091, 0.000792973,   0.0112491,   0.0126972;
   
-  auto p = sigma_points::predict(SP);
+  auto p = sigma_points::predict(std::make_tuple(SP, -4));
   REQUIRE(((std::get<0>(p) - ex).array().abs() < 1e-5).all());
   REQUIRE(((std::get<1>(p) - eP).array().abs() < 1e-7).all());
 }

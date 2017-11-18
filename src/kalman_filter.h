@@ -14,7 +14,8 @@ namespace kalman_filter {
     template<typename Model>
     using Prediction = std::tuple<std::chrono::microseconds,
                                   Eigen::Matrix<double, Model::N,
-                                                        sigma_points::NSigma(Model::N_A)>>;
+                                                        sigma_points::NSigma(Model::N_A)>,
+                                  double>;
     
     template<typename Model>
     using Update = std::tuple<typename Model::State, double>;
@@ -26,33 +27,38 @@ namespace kalman_filter {
       const auto& P = Model::Augment(std::get<2>(state));
       
       auto dt = std::chrono::duration_cast<typename Model::Interval>(now - ts);
-      auto SP = Model::F(sigma_points::create(x, P), dt);
+      auto SP = sigma_points::create(x, P);
 
-      return Prediction<Model>{now, SP};
+      return Prediction<Model>{std::move(now), Model::F(std::get<0>(SP), dt), std::get<1>(SP)};
     }
 
     template<typename Model, typename Z>
     Update<Model> update(typename Z::Measurement z, Prediction<Model> state) {
       const auto& now = std::get<0>(state);
       const auto& SP = std::get<1>(state);
+      const auto lambda = std::get<2>(state);
 
       auto ZP = Z::H(SP);
-      auto Zp = sigma_points::predict(ZP);
+      auto Zp = sigma_points::predict(std::make_tuple(ZP, lambda));
       const auto& zp = std::get<0>(Zp);
       const auto S = std::get<1>(Zp) + Z::R;
       const auto Sinv = S.inverse();
       
-      auto Xp = sigma_points::predict(SP);
+      auto Xp = sigma_points::predict(std::make_tuple(SP, lambda));
       const auto& x = std::get<0>(Xp);
       const auto& P = std::get<1>(Xp);
 
-      auto T = sigma_points::xCorrelation(SP.colwise() - x, ZP.colwise() - zp);
+      auto T = sigma_points::xCorrelation(SP.colwise() - x, ZP.colwise() - zp, lambda);
       auto K = T*Sinv;
 
       const auto dz = Z::Normalize(z - zp);
       auto e = dz.transpose() * Sinv * dz;
 
-      return Update<Model>{typename Model::State{now, x + K*dz, P - K*S*K.transpose()}, e};
+      return Update<Model>{
+        typename Model::State{
+          std::move(now), x + K*dz, P - K*S*K.transpose()
+        }, e
+      };
     }
   }
   
