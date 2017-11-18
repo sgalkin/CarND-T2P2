@@ -64,7 +64,7 @@ TEST_CASE("Predict mean/covariance", "[math]") {
     -0.00348196, 0.00980182, 0.000778632,   0.0119238,   0.0112491,
     -0.00299378, 0.00791091, 0.000792973,   0.0112491,   0.0126972;
   
-  auto p = sigma_points::predict(std::make_tuple(SP, -4));
+  auto p = sigma_points::predict(SP, 3. - (s - 1)/2);
   REQUIRE(((std::get<0>(p) - ex).array().abs() < 1e-5).all());
   REQUIRE(((std::get<1>(p) - eP).array().abs() < 1e-7).all());
 }
