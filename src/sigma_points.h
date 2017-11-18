@@ -47,7 +47,7 @@ namespace sigma_points {
            typename R = Eigen::Matrix<double, S::RowsAtCompileTime,
                                               U::RowsAtCompileTime>>
   R xCorrelation(const S& Sc, const U& Uc, double lambda) {
-    static_assert(S::ColsAtCompileTime == U::ColsAtCompileTime,
+    static_assert(int(S::ColsAtCompileTime) == int(U::ColsAtCompileTime),
                   "Cols count mismatch");
     static_assert((S::ColsAtCompileTime - 1) % 2 == 0,
                   "Invalid number of columns");
