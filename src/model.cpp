@@ -1,8 +1,8 @@
 #include "model.h"
 
 namespace {
-  const double std_a = 0.5;
-  const double std_psi_dot_dot = 0.25;
+  const double std_a = 0.8;
+  const double std_psi_dot_dot = 0.6;
 }
 
 const Eigen::Matrix<double, Model::N_A - Model::N,
