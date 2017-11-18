@@ -17,7 +17,9 @@ struct MeasurementS : MeasurementBase
   
   using Measurement = Eigen::Matrix<double, Size, 1>;
   using Covariance = Eigen::Matrix<double, Size, Size>;
-  using Projection = Eigen::Matrix<double, Size, Model::N>;
+
+  template<typename I>
+  using Projection = Eigen::Matrix<double, Size, I::ColsAtCompileTime>;
 
   using Package = MeasurementBase::Package<Measurement>;
 };

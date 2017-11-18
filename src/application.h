@@ -3,22 +3,25 @@
 #include <string>
 #include <exception>
 #include <vector>
+#include <unordered_map>
 
 #include "model.h"
 #include "tools.h"
 #include "filter.h"
 #include "measurement.h"
+#include "truth.h"
+#include "kalman_filter.h"
 
-using State = std::tuple<bool, Model::State>;
 using MeasurementFilter = Filter<MeasurementBase::TAG, Deny>;
+using State = kalman_filter::State<Model>;
 
-State update(std::istringstream& iss, State state);
+State update(MeasurementBase::TAG tag, std::istringstream& iss, State state);
 
 template<typename Protocol>
 class Application {
 public:
   explicit Application(MeasurementFilter filter) :
-    state_{false, Model::State()},
+    state_{false, Model::State(), 0},
     filter_{std::move(filter)} {}
   
   std::string ProcessMessage(std::string message) {
@@ -38,19 +41,24 @@ private:
   
   std::string ProcessMeasurement(std::string measurement) {
     std::istringstream iss(std::move(measurement));
-    if(!filter_(iss.peek())) { // Ignores filtered measurement
+    MeasurementBase::TAG tag{0};
+    iss >> tag;
+    if(!filter_(tag)) { // Ignores filtered measurement
       return Protocol::formatResponse();
     }
 
-    state_ = update(iss, state_);
-    estimations_.push_back(std::get<1>(std::get<1>(state_)));
+    state_ = update(tag, iss, state_);
+    const auto& estimation = std::get<1>(std::get<1>(state_));
+    estimations_.push_back(cast(estimation));
+    
+    NIS_[tag].push_back(std::get<2>(state_));
 
-    Model::x gt;
+    Truth::x gt;
     iss >> gt;
     truth_.emplace_back(std::move(gt));
 
     auto rmse = tools::RMSE(estimations_, truth_);
-    return Protocol::formatResponse(estimations_.back(), rmse);
+    return Protocol::formatResponse(estimation, rmse, NIS_);
   }
 
 private:
@@ -58,6 +66,9 @@ private:
   MeasurementFilter filter_;
   
   // used to compute the RMSE
-  std::vector<Model::x> estimations_;
-  std::vector<Model::x> truth_;
+  std::vector<Truth::x> estimations_;
+  std::vector<Truth::x> truth_;
+
+  // used to evaluate consistency
+  std::unordered_map<MeasurementBase::TAG, std::vector<double>> NIS_;
 };

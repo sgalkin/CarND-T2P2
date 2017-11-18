@@ -1,23 +1,18 @@
 #include "laser.h"
 
+namespace {
+  constexpr double px_std = 0.15;
+  constexpr double py_std = 0.15;
+}
+
 const Laser::TAG Laser::Tag = 'L';
 
 const Laser::Covariance Laser::R = []{
-  return (Laser::Covariance() << 0.0225, 0,
-                                 0, 0.0225).finished();
+  return (Laser::Covariance()
+          << px_std*px_std,             0,
+                         0, py_std*py_std
+         ).finished();
 }();
-
-Laser::Measurement Laser::Hp(const Model::x& x) {
-  return Hj(x) * x;
-}
-
-Laser::Projection Laser::Hj(const Model::x&) {
-  static const Projection H = [] {
-    return (Projection() << 1, 0, 0, 0,
-                            0, 1, 0, 0).finished();
-  }();
-  return H;
-}
 
 Laser::Measurement Laser::Normalize(Laser::Measurement z) {
   return z;

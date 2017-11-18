@@ -3,6 +3,7 @@
 #include <vector>
 #include <numeric>
 #include <exception>
+#include <cmath>
 
 namespace tools {
   // A helper function to calculate RMSE.
@@ -23,5 +24,11 @@ namespace tools {
                                   return (e - gt).array().square().matrix();
                                 });
     return (v / ground_truth.size()).array().sqrt().matrix();
+  }
+
+  inline double NormalizeAngle(double radian) {
+    while(radian < -M_PI) radian += 2*M_PI;
+    while(radian > M_PI) radian -= 2*M_PI;
+    return radian;
   }
 }

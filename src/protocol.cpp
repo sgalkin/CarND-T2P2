@@ -43,14 +43,17 @@ std::string WSProtocol::formatResponse() {
   return manual;
 }
   
-std::string WSProtocol::formatResponse(const Model::x& estimate, const Model::x& RMSE) {
+std::string WSProtocol::formatResponse(const Model::x& estimate,
+                                       const Truth::x& RMSE,
+                                       const std::unordered_map<MeasurementBase::TAG,
+                                                                std::vector<double>>&) {
   json msgJson;
   msgJson["estimate_x"] = estimate(Model::X);
   msgJson["estimate_y"] = estimate(Model::Y);
-  msgJson["rmse_x"] = RMSE(Model::X);
-  msgJson["rmse_y"] = RMSE(Model::Y);
-  msgJson["rmse_vx"] = RMSE(Model::VX);
-  msgJson["rmse_vy"] = RMSE(Model::VY);
+  msgJson["rmse_x"] = RMSE(Truth::X);
+  msgJson["rmse_y"] = RMSE(Truth::Y);
+  msgJson["rmse_vx"] = RMSE(Truth::VX);
+  msgJson["rmse_vy"] = RMSE(Truth::VY);
   
   return "42[\"estimate_marker\"," + msgJson.dump() + "]";
 }

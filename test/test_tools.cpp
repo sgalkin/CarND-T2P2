@@ -37,3 +37,9 @@ TEST_CASE("RMSE", "[math]") {
   test<Eigen::VectorXd>([]{return Eigen::VectorXd(4);});
   test<Eigen::MatrixXd>([]{return Eigen::MatrixXd(2,2);});
 }
+
+TEST_CASE("NormalizeAngle", "[math]") {
+  REQUIRE(Approx(M_PI/2) == tools::NormalizeAngle(-3*M_PI/2));
+  REQUIRE(Approx(M_PI/4) == tools::NormalizeAngle(M_PI/4));
+  REQUIRE(Approx(-M_PI/2) == tools::NormalizeAngle(3*M_PI/2));
+}

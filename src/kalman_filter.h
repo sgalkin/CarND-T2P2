@@ -2,46 +2,62 @@
 
 #include <tuple>
 #include <chrono>
+#include "sigma_points.h"
+
+#include <iostream>
 
 namespace kalman_filter {
   template<typename Model>
-  using State = typename Model::State;
+  using State = std::tuple<bool, typename Model::State, double>;
   
   namespace internal {
     template<typename Model>
-    State<Model> predict(std::chrono::microseconds now, State<Model> state) {
+    using Prediction = std::tuple<std::chrono::microseconds,
+                                  Eigen::Matrix<double, Model::N,
+                                                        sigma_points::NSigma(Model::N_A)>>;
+    
+    template<typename Model>
+    using Update = std::tuple<typename Model::State, double>;
+    
+    template<typename Model>
+    Prediction<Model> predict(std::chrono::microseconds now, typename Model::State state) {
       const auto& ts = std::get<0>(state);
-      const auto& x = std::get<1>(state);
-      const auto& P = std::get<2>(state);
+      const auto& x = Model::Augment(std::get<1>(state));
+      const auto& P = Model::Augment(std::get<2>(state));
       
       auto dt = std::chrono::duration_cast<typename Model::Interval>(now - ts);
-      auto F = Model::F(dt);
-      auto G = Model::G(dt);
-      
-      return std::make_tuple(now, F*x, F*P*F.transpose() + G*Model::Q*G.transpose());
+      auto SP = Model::F(sigma_points::create(x, P), dt);
+
+      return {now, SP};
     }
 
     template<typename Model, typename Z>
-    State<Model> update(typename Z::Measurement z, State<Model> state) {
+    Update<Model> update(typename Z::Measurement z, Prediction<Model> state) {
       const auto& now = std::get<0>(state);
-      const auto& x = std::get<1>(state);
-      const auto& P = std::get<2>(state);
+      const auto& SP = std::get<1>(state);
 
-      auto Hj = Z::Hj(x);
-      auto zp = Z::Hp(x); 
-      auto PHjt = P * Hj.transpose();
+      auto ZP = Z::H(SP);
+      auto Zp = sigma_points::predict(ZP);
+      const auto& zp = std::get<0>(Zp);
+      const auto S = std::get<1>(Zp) + Z::R;
+      const auto Sinv = S.inverse();
       
-      auto y = Z::Normalize(z - zp);
-      auto S = Hj * PHjt + Z::R;
-      auto K = PHjt * S.inverse();
-      
-      return std::make_tuple(now, x + K*y, (Model::I - K*Hj)*P);
+      auto Xp = sigma_points::predict(SP);
+      const auto& x = std::get<0>(Xp);
+      const auto& P = std::get<1>(Xp);
+
+      auto T = sigma_points::xCorrelation(SP.colwise() - x, ZP.colwise() - zp);
+      auto K = T*Sinv;
+
+      const auto dz = Z::Normalize(z - zp);
+      auto e = dz.transpose() * Sinv * dz;
+
+      return {{now, x + K*dz, P - K*S*K.transpose()}, e};
     }
   }
   
   template<typename Model, typename Z>
-  std::tuple<bool, State<Model>>
-  update(typename Z::Package package, std::tuple<bool, State<Model>> state) {
+  State<Model> update(typename Z::Package package, State<Model> state) {
     auto now = std::get<0>(package);
     auto z = std::get<1>(package);
 
@@ -49,12 +65,11 @@ namespace kalman_filter {
     auto s = std::get<1>(state);
     
     if(initialized) {
-      // don't predict if measuremnet came for the same moment as previous one
-      auto p = std::get<0>(s) == now ? s : internal::predict<Model>(now, std::move(s));
+      auto p = internal::predict<Model>(now, std::move(s));
       auto u = internal::update<Model, Z>(std::move(z), std::move(p));
-      return std::make_tuple(true, u);
+      return {true, std::get<0>(u), std::get<1>(u)};
     } else {
-      return std::make_tuple(true, Model::template Init<Z>(now, std::move(z)));
+      return {true, Model::template Init<Z>(now, std::move(z)), 0};
     }
   }
 }

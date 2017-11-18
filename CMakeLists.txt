@@ -31,6 +31,7 @@ set(sources
   src/radar.h
   src/tools.h
   src/kalman_filter.h
+  src/sigma_points.h
   )
 
 set(tests
@@ -40,6 +41,9 @@ set(tests
   test/test_measurement.cpp
   test/test_model.cpp
   test/test_radar.cpp
+  test/test_laser.cpp
+  test/test_sigma_points.cpp
+  test/test_kalman_filter.cpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
