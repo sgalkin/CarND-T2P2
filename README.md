@@ -1,5 +1,6 @@
 # Unscented Kalman Filter Project
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
+[![CircleCI](https://circleci.com/gh/sgalkin/CarND-T2P2.svg?style=svg&circle-token=c9e58cb72c87402b9c08146bfc2ea56b76bb91f9)](https://circleci.com/gh/sgalkin/CarND-T2P2)
 
 This project implements Unscented Kalman Filter to estimate the state of a moving
 object of interest with noisy lidar and radar measurements.
